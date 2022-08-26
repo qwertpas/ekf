@@ -29,6 +29,7 @@ class EKF(object):
         # Current state is zero, with diagonal noise covariance matrix
         self.x = np.zeros(n)
         self.P_post = np.eye(n) * pval
+        self.P_post_init = self.P_post.copy()
 
         # Set up covariance matrices for process noise and measurement noise
         self.Q = np.eye(n) * qval
@@ -40,7 +41,11 @@ class EKF(object):
         self.n = n
         self.m = m
 
-    def step(self, z):
+    def reset(self, state):
+        self.x = state
+        self.P_post = self.P_post_init
+
+    def step(self, z, u):
         '''
         Runs one step of the EKF on observations z, where z is a tuple of length M.
         Returns a NumPy array representing the updated state.
@@ -49,32 +54,36 @@ class EKF(object):
         # Predict ----------------------------------------------------
 
         # $\hat{x}_k = f(\hat{x}_{k-1})$
-        self.x, F = self.f(self.x)
+        self.x, F = self.f(self.x, u)
 
         # $P_k = F_{k-1} P_{k-1} F^T_{k-1} + Q_{k-1}$
+        print(np.max(self.P_post))
         self.P_pre = F * self.P_post * F.T + self.Q
 
         # Update -----------------------------------------------------
 
-        h, H = self.h(self.x)
-
         n = self.n
         m = self.m
 
+        h, H = self.h(self.x)
+        h = np.reshape(h, (m,m))
+        H = np.reshape(H, (m,n))
+
         # $G_k = P_k H^T_k (H_k P_k H^T_k + R)^{-1}$
-        G = np.dot(np.reshape(self.P_pre.dot(H.T), (n,m)), np.linalg.inv(H.dot(self.P_pre).dot(H.T) + self.R))
+        G = np.dot(self.P_pre.dot(H.T), np.linalg.inv(H.dot(self.P_pre).dot(H.T) + self.R))
 
         # $\hat{x}_k = \hat{x_k} + G_k(z_k - h(\hat{x}_k))$
-        self.x += np.reshape(np.dot(G, np.reshape((np.array(z) - h.T).T, (m,1))), 4)
+        self.x += np.reshape(np.dot(G, (np.array(z) - h.T).T), n)
 
         # $P_k = (I - G_k H_k) P_k$
-        self.P_post = np.dot(self.I - np.dot(G, np.reshape(H, (m,n))), self.P_pre)
+        # self.P_post = np.dot(self.I - np.dot(G, H), self.P_pre)
+        self.P_post = (self.I - G@H) @ self.P_pre @ (self.I - G@H).T + G@self.R@G.T
 
         # return self.x.asarray()
         return self.x
 
     @abstractmethod
-    def f(self, x):
+    def f(self, x, u):
         '''
         Your implementing class should define this method for the state-transition function f(x).
         Your state-transition fucntion should return a NumPy array of n elements representing the

@@ -47,11 +47,13 @@ class CartPoleEnv(gym.Env[np.ndarray, Union[int, np.ndarray]]):
         self.polemass_length = self.masspole * self.length
         self.max_force = 10.0
         self.sim_speed = 1         #1 is real time, higher is faster
-        self.kinematics_integrator = "semi-implicit euler"
+        # self.kinematics_integrator = "semi-implicit euler"
+        self.kinematics_integrator = "euler"
 
         self.tau = self.sim_speed/self.metadata['render_fps']  # seconds between state updates
 
         self.noise_lvl = noise_lvl
+        self.init_random = 0.5
 
         # Angle at which to fail the episode
         self.theta_threshold_radians = 90 * 2 * math.pi / 360
@@ -118,14 +120,14 @@ class CartPoleEnv(gym.Env[np.ndarray, Union[int, np.ndarray]]):
 
         self.state = np.array([x, x_dot, theta, theta_dot])
 
-        terminated = bool(
+        self.terminated = bool(
             x < -self.x_threshold
             or x > self.x_threshold
             or theta < -self.theta_threshold_radians
             or theta > self.theta_threshold_radians
         )
 
-        if not terminated:
+        if not self.terminated:
             reward = 1.0
         elif self.steps_beyond_terminated is None:
             # Pole just fell!
@@ -147,7 +149,7 @@ class CartPoleEnv(gym.Env[np.ndarray, Union[int, np.ndarray]]):
         noise = self.np_random.normal(loc=0, scale=self.noise_lvl, size=len(self.state))
         obs = self.state + noise
 
-        return obs, reward, terminated, self.state
+        return obs, reward, self.terminated, self.state
 
     def reset(
         self,
@@ -158,14 +160,15 @@ class CartPoleEnv(gym.Env[np.ndarray, Union[int, np.ndarray]]):
         super().reset(seed=seed)
         # Note that if you use custom reset bounds, it may lead to out-of-bound
         # state/observations.
+        self.terminated = False
         low, high = utils.maybe_parse_reset_bounds(
-            options, -0.05, 0.05  # default low
+            options, -self.init_random, self.init_random  # default low
         )  # default high
-        self.state = self.np_random.uniform(low=low, high=high, size=(4,))
+        self.state = np.array([0, 0, self.np_random.uniform(low=low, high=high), 0]).reshape(4,)
         self.steps_beyond_terminated = None
         self.renderer.reset()
         self.renderer.render_step()
-        return np.array(self.state, dtype=np.float32)
+        return self.state
 
     def render(self):
         return self.renderer.get_renders()
@@ -186,6 +189,7 @@ class CartPoleEnv(gym.Env[np.ndarray, Union[int, np.ndarray]]):
             pygame.init()
             if mode == "human":
                 pygame.display.init()
+                pygame.display.set_caption('Click to reset')
                 self.screen = pygame.display.set_mode(
                     (self.screen_width, self.screen_height)
                 )
@@ -196,6 +200,8 @@ class CartPoleEnv(gym.Env[np.ndarray, Union[int, np.ndarray]]):
             self.clock = pygame.time.Clock()
 
         for event in pygame.event.get():
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                self.terminated = True
             if event.type == pygame.QUIT:
                 pygame.display.quit()
                 sys.exit()
