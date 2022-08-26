@@ -37,6 +37,9 @@ class EKF(object):
         # Identity matrix will be usefel later
         self.I = np.eye(n)
 
+        self.n = n
+        self.m = m
+
     def step(self, z):
         '''
         Runs one step of the EKF on observations z, where z is a tuple of length M.
@@ -55,14 +58,17 @@ class EKF(object):
 
         h, H = self.h(self.x)
 
+        n = self.n
+        m = self.m
+
         # $G_k = P_k H^T_k (H_k P_k H^T_k + R)^{-1}$
-        G = np.dot(self.P_pre.dot(H.T), np.linalg.inv(H.dot(self.P_pre).dot(H.T) + self.R))
+        G = np.dot(np.reshape(self.P_pre.dot(H.T), (n,m)), np.linalg.inv(H.dot(self.P_pre).dot(H.T) + self.R))
 
         # $\hat{x}_k = \hat{x_k} + G_k(z_k - h(\hat{x}_k))$
-        self.x += np.dot(G, (np.array(z) - h.T).T)
+        self.x += np.reshape(np.dot(G, np.reshape((np.array(z) - h.T).T, (m,1))), 4)
 
         # $P_k = (I - G_k H_k) P_k$
-        self.P_post = np.dot(self.I - np.dot(G, H), self.P_pre)
+        self.P_post = np.dot(self.I - np.dot(G, np.reshape(H, (m,n))), self.P_pre)
 
         # return self.x.asarray()
         return self.x

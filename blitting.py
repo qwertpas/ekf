@@ -99,7 +99,7 @@ class LivePlot():
 
         self.lines = []
 
-        print(self.num_lines)
+        print(f"LivePlot: Created {self.num_lines} lines on {len(labels)} subplots")
 
         for i in range(len(labels)):
             axs[i].set_ylim(ymins[i], ymaxes[i])
