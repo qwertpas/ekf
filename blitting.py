@@ -1,4 +1,3 @@
-
 import sys
 import matplotlib.pyplot as plt
 import numpy as np
@@ -77,34 +76,70 @@ class BlitManager:
         cv.flush_events()
 
 
+class LivePlot():
+    def __init__(self, labels, ymins, ymaxes, history=100):
+        '''
+        example: 2 graphs with 1 line on first subplot and 2 lines overlayed on 2nd subplot: format=(1, 2)
+        '''
+
+        assert len(labels) == len(ymins)
+        assert len(labels) == len(ymaxes)
+
+        fig, axs = plt.subplots(nrows=len(labels))
+        def on_close(event):
+            sys.exit()
+        fig.canvas.mpl_connect('close_event', on_close)
+
+        self.num_lines = 0
+        for i in range(len(labels)):
+            self.num_lines += len(labels[i])
+
+        self.x = np.linspace(0, history, history)
+        self.data = np.zeros((self.num_lines, history))
+
+        self.lines = []
+
+        print(self.num_lines)
+
+        for i in range(len(labels)):
+            axs[i].set_ylim(ymins[i], ymaxes[i])
+            for j in range(len(labels[i])):
+                (ln,) = axs[i].plot(self.x, self.data[len(self.lines)], 'o-', label=labels[i][j], markersize=1, animated=True)
+                self.lines.append(ln)
+            axs[i].legend(loc='lower left')
+
+        self.bm = BlitManager(fig.canvas, self.lines)
+        self.labels = labels
+
+        plt.show(block=False)
+        plt.pause(.1)
+
+    def plot(self, *new_data):
+        new_data = np.array(new_data).flatten()
+
+        assert len(new_data) == self.num_lines
+
+        for i in range(len(new_data)):
+            self.data[i] = np.roll(self.data[i], -1)
+            self.data[i][-1] = new_data[i]
+            self.lines[i].set_ydata(self.data[i])
+
+        self.bm.update()
+
+
 if __name__ == "__main__":
 
-    fig, ax = plt.subplots()
-    def on_close(event):
-        sys.exit()
-    fig.canvas.mpl_connect('close_event', on_close)
-
-    x = np.linspace(0, 100, 100)
-    data = np.zeros_like(x)
-
-    ax.set_ylim(-1, 1)
-
-    (ln,) = ax.plot(x, data, 'o-', animated=True)
-
-    bm = BlitManager(fig.canvas, [ln])
-    # make sure our window is on the screen and drawn
-    plt.show(block=False)
-    plt.pause(.1)
+    lp = LivePlot(
+        labels=(('a', 'b'), 'c'),
+        ymins = (-1, -2),
+        ymaxes = (1, 2),
+        history=100
+    )
 
 
-
+    t = 0
     while True:
-        # update the artists
-        data = np.roll(data, -1)
-        data[-1] = np.random.normal(loc=0.5, scale=0.25)
-        ln.set_ydata(data)
-        ln.set_xdata(x)
-
-        # tell the blitting manager to do its thing
-        bm.update()
+        
+        lp.plot(np.sin(t), np.cos(t), np.tan(t))
         plt.pause(0.02)
+        t += 0.02

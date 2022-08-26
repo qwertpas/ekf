@@ -1,48 +1,17 @@
+from datetime import datetime
+from blitting import LivePlot
 from cartpoleEnv import CartPoleEnv
 from tinyekf import EKF
 import numpy as np
 
-env = CartPoleEnv(render_mode='human')
+env = CartPoleEnv(render_mode='human', noise_lvl=0.1)
 obs = env.reset()
 
-
-# class CartpoleEKF(EKF):
-
-#     def __init__(self):
-
-#         # One state (ASL), two measurements (baro, sonar), with larger-than-usual
-#         # measurement covariance noise to help with sonar blips.
-#         EKF.__init__(self, 1, 2, rval=.5)
-
-#     def f(self, x):
-
-#         # State-transition function is identity
-#         return np.copy(x), np.eye(1)
-
-
-#     def h(self, x):
-
-#         # State value is ASL
-#         asl = x[0]
-
-#         # Convert ASL cm to sonar AGL cm by subtracting off ASL baseline from baro
-#         s = sonarfun(asl - baro2asl(BARO_BASELINE))
-
-#         # Convert ASL cm to Pascals: see http://www.engineeringtoolbox.com/air-altitude-pressure-d_462.html
-#         b = asl2baro(asl)
-
-#         h = np.array([b, s])
-
-#         # First derivative of nonlinear baro-measurement function
-#         # Used http://www.wolframalpha.com
-#         dpdx = -0.120131 * pow((1 - 2.2577e-7 * x[0]), 4.25588)
-
-#         # Sonar response is linear, so derivative is constant
-#         dsdx = 0.933
-
-#         H = np.array([[dpdx], [dsdx]])
-
-#         return h, H
+lp = LivePlot(
+    labels=('x', ('theta', 'theta obs', 'theta est')),
+    ymins=[-4, -np.pi/2],
+    ymaxes=[4, np.pi/2],
+)
 
 
 while True:
@@ -51,9 +20,15 @@ while True:
     K = [1, 0, 20, 0]
 
     action = K @ obs
-    obs, reward, done = env.step(action)
+    obs, reward, done, state = env.step(action)
+
+    x_obs, xdot_obs, theta_obs, thetadot_obs = obs
+    x, xdot, theta, thetadot = state
+    lp.plot(x, theta, theta_obs, theta_obs)
 
     # Render the game
     env.render()
     if done == True:
         env.reset()
+
+    print(datetime.now())

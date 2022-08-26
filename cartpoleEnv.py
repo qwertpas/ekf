@@ -3,7 +3,6 @@ Classic cart-pole system implemented by Rich Sutton et al.
 Copied from http://incompleteideas.net/sutton/book/code/pole.c
 permalink: https://perma.cc/C9ZM-652R
 """
-from importlib.metadata import metadata
 import math
 from typing import Optional, Union
 
@@ -15,13 +14,8 @@ from gym.envs.classic_control import utils
 from gym.error import DependencyNotInstalled
 from gym.utils.renderer import Renderer
 
-import matplotlib.pyplot as plt
-
 import sys
 import os
-
-from blitting import BlitManager
-
 
 class CartPoleEnv(gym.Env[np.ndarray, Union[int, np.ndarray]]):
     '''
@@ -35,7 +29,7 @@ class CartPoleEnv(gym.Env[np.ndarray, Union[int, np.ndarray]]):
     | 2   | Pole Angle            | ~ -0.418 rad (-24°) | ~ 0.418 rad (24°) |
     | 3   | Pole Angular Velocity | -Inf                | Inf               |
 
-    All observations are assigned a uniformly random value in `(-0.05, 0.05)`
+    All observations are initially assigned a uniformly random value in `(-0.05, 0.05)`
 
     '''
 
@@ -44,7 +38,7 @@ class CartPoleEnv(gym.Env[np.ndarray, Union[int, np.ndarray]]):
         "render_fps": 30,
     }
 
-    def __init__(self, render_mode: Optional[str] = None):
+    def __init__(self, render_mode: Optional[str] = None, noise_lvl=0.1):
         self.gravity = 9.8
         self.masscart = 1.0
         self.masspole = 0.1
@@ -57,6 +51,7 @@ class CartPoleEnv(gym.Env[np.ndarray, Union[int, np.ndarray]]):
 
         self.tau = self.sim_speed/self.metadata['render_fps']  # seconds between state updates
 
+        self.noise_lvl = noise_lvl
 
         # Angle at which to fail the episode
         self.theta_threshold_radians = 90 * 2 * math.pi / 360
@@ -121,7 +116,7 @@ class CartPoleEnv(gym.Env[np.ndarray, Union[int, np.ndarray]]):
             theta_dot = theta_dot + self.tau * thetaacc
             theta = theta + self.tau * theta_dot
 
-        self.state = (x, x_dot, theta, theta_dot)
+        self.state = np.array([x, x_dot, theta, theta_dot])
 
         terminated = bool(
             x < -self.x_threshold
@@ -148,7 +143,11 @@ class CartPoleEnv(gym.Env[np.ndarray, Union[int, np.ndarray]]):
             reward = 0.0
 
         self.renderer.render_step()
-        return np.array(self.state, dtype=np.float32), reward, terminated
+
+        noise = self.np_random.normal(loc=0, scale=self.noise_lvl, size=len(self.state))
+        obs = self.state + noise
+
+        return obs, reward, terminated, self.state
 
     def reset(
         self,
@@ -182,7 +181,7 @@ class CartPoleEnv(gym.Env[np.ndarray, Union[int, np.ndarray]]):
             )
 
         if self.screen is None:
-            os.environ['SDL_VIDEO_WINDOW_POS'] = f"{800},{0}"
+            os.environ['SDL_VIDEO_WINDOW_POS'] = f"{800},{100}"
 
             pygame.init()
             if mode == "human":
@@ -190,25 +189,6 @@ class CartPoleEnv(gym.Env[np.ndarray, Union[int, np.ndarray]]):
                 self.screen = pygame.display.set_mode(
                     (self.screen_width, self.screen_height)
                 )
-
-                fig, ax = plt.subplots()
-                def on_close(event):
-                    sys.exit()
-                fig.canvas.mpl_connect('close_event', on_close)
-
-                self.time_axis = np.linspace(0, 100, 100)
-                self.data = np.zeros_like(self.time_axis)
-
-                ax.set_title("Pole angle (radians)")
-                ax.set_ylim(-np.pi/2, np.pi/2)
-
-                (self.ln,) = ax.plot(self.time_axis, self.data, 'o-', animated=True)
-
-                self.bm = BlitManager(fig.canvas, [self.ln])
-                # make sure our window is on the screen and drawn
-                plt.show(block=False)
-                plt.pause(.1)
-
 
             else:  # mode in {"rgb_array", "single_rgb_array"}
                 self.screen = pygame.Surface((self.screen_width, self.screen_height))
@@ -231,15 +211,6 @@ class CartPoleEnv(gym.Env[np.ndarray, Union[int, np.ndarray]]):
             return None
 
         x = self.state
-
-        # update the artists
-        self.data = np.roll(self.data, -1)
-        self.data[-1] = x[2]
-        self.ln.set_ydata(self.data)
-        self.ln.set_xdata(self.time_axis)
-
-        # tell the blitting manager to do its thing
-        self.bm.update()
 
         self.surf = pygame.Surface((self.screen_width, self.screen_height))
         self.surf.fill((255, 255, 255))
