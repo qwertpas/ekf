@@ -17,7 +17,7 @@ lp = LivePlot(
 class PitchEKF(EKF):
     def __init__(self):
         # 4 states, 1 observable
-        EKF.__init__(self, n=4, m=1, pval=0.1, qval=0.01, rval=0.1)
+        EKF.__init__(self, n=4, m=1, pval=0.1, qval=0.001, rval=0.1)
 
     def f(self, state, action):
         x, x_dot, theta, theta_dot = state
