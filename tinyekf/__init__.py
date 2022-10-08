@@ -41,9 +41,12 @@ class EKF(object):
         self.n = n
         self.m = m
 
+        self.counter=0
+
     def reset(self, state):
         self.x = state
         self.P_post = self.P_post_init
+        self.counter=0
 
     def step(self, z, u):
         '''
@@ -57,30 +60,38 @@ class EKF(object):
         self.x, F = self.f(self.x, u)
 
         # $P_k = F_{k-1} P_{k-1} F^T_{k-1} + Q_{k-1}$
-        print(np.max(self.P_post))
-        self.P_pre = F * self.P_post * F.T + self.Q
+        # print(self.P_post.trace())
+        self.P_pre = F @ self.P_post @ F.T + self.Q
 
         # Update -----------------------------------------------------
+
 
         n = self.n
         m = self.m
 
         h, H = self.h(self.x)
-        h = np.reshape(h, (m,m))
+        h = np.reshape(h, (m,1))
         H = np.reshape(H, (m,n))
 
         # $G_k = P_k H^T_k (H_k P_k H^T_k + R)^{-1}$
         G = np.dot(self.P_pre.dot(H.T), np.linalg.inv(H.dot(self.P_pre).dot(H.T) + self.R))
 
+        # print(G.trace())
+
         # $\hat{x}_k = \hat{x_k} + G_k(z_k - h(\hat{x}_k))$
-        self.x += np.reshape(np.dot(G, (np.array(z) - h.T).T), n)
+        if(self.counter % 5 == 0):
+
+            self.x += np.reshape(np.dot(G, (np.array(z) - h.T).T), n)
 
         # $P_k = (I - G_k H_k) P_k$
         # self.P_post = np.dot(self.I - np.dot(G, H), self.P_pre)
-        self.P_post = (self.I - G@H) @ self.P_pre @ (self.I - G@H).T + G@self.R@G.T
+            self.P_post = (self.I - G@H) @ self.P_pre @ (self.I - G@H).T + G@self.R@G.T
+
+        self.counter += 1
 
         # return self.x.asarray()
         return self.x
+
 
     @abstractmethod
     def f(self, x, u):

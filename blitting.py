@@ -104,7 +104,7 @@ class LivePlot():
         for i in range(len(labels)):
             axs[i].set_ylim(ymins[i], ymaxes[i])
             for j in range(len(labels[i])):
-                (ln,) = axs[i].plot(self.x, self.data[len(self.lines)], 'o-', label=labels[i][j], markersize=1, animated=True)
+                (ln,) = axs[i].plot(self.x, self.data[len(self.lines)], 'o-', label=labels[i][j], markersize=1)
                 self.lines.append(ln)
             axs[i].legend(loc='lower left')
 

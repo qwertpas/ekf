@@ -9,15 +9,20 @@ state = env.reset()
 action = 0
 
 lp = LivePlot(
-    labels=(('x', 'x est'), ('theta', 'theta obs', 'theta est')),
-    ymins=[-2.4, -np.pi/4],
-    ymaxes=[2.4, np.pi/4],
+    labels=(
+        ('x_obs', 'x_est'), 
+        ('theta_obs', 'theta_est'),
+        ('xdot_obs', 'xdot_est'), 
+        ('thetadot_obs', 'thetadot_est'),
+    ),
+    ymins=[-2.4, -np.pi/4, -1, -1],
+    ymaxes=[2.4, np.pi/4, 1, 1],
 )
 
 class PitchEKF(EKF):
     def __init__(self):
         # 4 states, 1 observable
-        EKF.__init__(self, n=4, m=1, pval=0.1, qval=0.001, rval=0.1)
+        EKF.__init__(self, n=4, m=4, pval=0.1, qval=0.5, rval=0.25)
 
     def f(self, state, action):
         x, x_dot, theta, theta_dot = state
@@ -55,7 +60,8 @@ class PitchEKF(EKF):
     def h(self, obs):
         #imu will measure pitch (theta), at the 2nd index
             
-        H = np.array([0, 0, 1, 0])
+        # H = np.array([1, 1, 1, 1])
+        H = np.eye(4)
         h = np.dot(H, obs)
 
         return h, H
@@ -68,20 +74,25 @@ pitchEKF.x = state
 while True:
 
     #x, xdot, theta, thetadot
-    K = [0.5, 0.1, 25, 1]
+    K = [0.5, 0.3, 20, 1]
 
     obs, reward, done, state = env.step(action)
 
     x_obs, xdot_obs, theta_obs, thetadot_obs = obs
     x, xdot, theta, thetadot = state
 
-    state_est = pitchEKF.step(theta_obs, action)
-    x_est = state_est[0]
-    theta_est = state_est[2]
+    state_est = pitchEKF.step(obs, action)
 
-    action = K @ np.array([x_obs, xdot_obs, theta, thetadot_obs])
+    x_est, xdot_est, theta_est, thetadot_est = state_est
 
-    lp.plot(x, x_est, theta, theta_obs, theta_est)
+    action = K @ np.array([x_est, xdot_est, theta_est, thetadot_est])
+
+    lp.plot(
+        x_obs, x_est, 
+        theta_obs, theta_est,
+        xdot_obs, xdot_est,
+        thetadot_obs, thetadot_est,
+    )
 
     env.render()
     if done == True:
