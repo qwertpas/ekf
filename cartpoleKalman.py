@@ -94,7 +94,9 @@ while True:
     x_est, xdot_est, theta_est, thetadot_est = state_est
 
     # action = K @ np.array([x_est, xdot_est, theta_est, thetadot_est])
-    action = K @ state
+    action = 0.1
+
+    print(state_est)
 
     lp.plot(
         x_obs, x_est, 

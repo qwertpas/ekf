@@ -4,8 +4,6 @@
 #include <math.h>
 #include <unistd.h>
 
-
-
 using Eigen::Vector4f;
 using Eigen::Matrix4f;
 using Eigen::MatrixXd;
@@ -39,7 +37,7 @@ void predict(float force, float dt){
     float costheta = cos(theta);
 
     float temp = (force + polemass_length * thetadot*thetadot * sintheta) / total_mass;
-    float thetaacc = (gravity * sintheta - costheta * temp) / (length * (4.0 / 3.0 - masspole * costheta*costheta / total_mass));
+    float thetaacc = (gravity * sintheta - costheta * temp) / (length * (4.0f/3.0f - masspole * costheta*costheta / total_mass));
     float xacc = temp - polemass_length * thetaacc * costheta / total_mass;
 
     //Euler integration
@@ -81,39 +79,39 @@ void step(Vector4f obs, float force, float dt){
 
     //form observation
     H = I_4;
-    h = H * obs;
+    h = H * state;
     Matrix4f H_t = H.transpose();
 
     //calc kalman gain
     Matrix4f G = (P_pre*H_t) * ((H*P_pre*H_t).inverse() + R);
-
-    cout << F << "\n" << endl;
 
     //update state
     state = state + G*(obs - h);
 
     //update process covariance
     P_post = (I_4 - G*H) * P_pre * (I_4 - G*H).transpose() + G*R*G.transpose(); 
+    
+    // cout << P_post << "\n" << endl;
 }
 
 
 int main(){
 
-    float dt = 1/30.0f;
+    const float dt = 1/30.0f;
     ekf_init(0.1, 0.5, 0.25);
+    // ekf_init(0, 1, 0);
 
 
     while(1){
 
     
-        float force = 0.1f;
+        float force = 0.0f;
         Vector4f obs;
-        obs << 0, 0, 0.1, 0;
+        obs << 0.1, 0, 0, 0;
 
         step(obs, force, dt);
 
-        sleep(1);
-
+        usleep(1e5);
 
         cout << state << '\n' << endl;
     }
