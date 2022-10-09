@@ -74,7 +74,17 @@ pitchEKF.x = state
 errors = np.zeros(10)
 
 
-while True:
+log = {
+    'timestamp': [],
+    'x': [],
+    'xdot': [],
+    'theta': [],
+    'thetadot': [],
+    'action': [],
+}
+
+
+while len(log['timestamp']) < 100:
 
     #x, xdot, theta, thetadot
     K = [0.5, 0.3, 20, 1]
@@ -94,9 +104,15 @@ while True:
     x_est, xdot_est, theta_est, thetadot_est = state_est
 
     # action = K @ np.array([x_est, xdot_est, theta_est, thetadot_est])
-    action = 0.1
+    action = K @ state
 
-    print(state_est)
+    log['timestamp'].append(datetime.now().timestamp())
+    log['x'].append(x)
+    log['xdot'].append(xdot)
+    log['theta'].append(theta)
+    log['thetadot'].append(thetadot)
+    log['action'].append(action)
+
 
     lp.plot(
         x_obs, x_est, 
@@ -111,3 +127,6 @@ while True:
         state = env.reset()
         pitchEKF.reset(state)
         action=0
+
+import pandas as pd
+pd.DataFrame.from_dict(log).to_csv("cartpole_log.csv", index=False)

@@ -3,11 +3,15 @@
 #include "Eigen/Dense"
 #include <math.h>
 #include <unistd.h>
+#include <stdio.h>
+#include <string.h>
+#include <vector>
+#include <fstream>
 
 using Eigen::Vector4f;
 using Eigen::Matrix4f;
-using Eigen::MatrixXd;
 using namespace std;
+using namespace Eigen;
 
 //4 states: [x, xdot, theta, thetadot]
 Vector4f state, statedot;   //prediction of state
@@ -95,7 +99,34 @@ void step(Vector4f obs, float force, float dt){
 }
 
 
+void readCSV(vector<vector<string> > *content, string fname){
+    vector<string> row;
+    string line, word;
+    
+    fstream file (fname, ios::in);
+    if(file.is_open()){
+        while(getline(file, line)){
+            row.clear();
+    
+            stringstream str(line);
+    
+            while(getline(str, word, ','))
+                row.push_back(word);
+            (*content).push_back(row);
+        }
+    }else{
+        cout<<"Could not open the file\n";
+    }
+}
+
+
 int main(){
+
+    vector<vector<string> > content;
+    readCSV(&content, "cartpole_log.csv");
+
+    cout << content[0][0] << endl;
+    
 
     const float dt = 1/30.0f;
     ekf_init(0.1, 0.5, 0.25);

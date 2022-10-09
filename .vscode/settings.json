@@ -1,6 +1,11 @@
 {
     "files.associations": {
         "ostream": "cpp",
-        "dense": "cpp"
+        "dense": "cpp",
+        "string": "cpp",
+        "filesystem": "cpp",
+        "iosfwd": "cpp",
+        "vector": "cpp",
+        "iterator": "cpp"
     }
 }
