@@ -84,7 +84,8 @@ class EKF(object):
         # print(G.trace())
 
         # $\hat{x}_k = \hat{x_k} + G_k(z_k - h(\hat{x}_k))$
-        if(self.counter % 5 == 0):
+        # if(self.counter % 5 == 0):
+        if(True):
 
             self.x += np.reshape(np.dot(G, (np.array(z) - h.T).T), n)
 

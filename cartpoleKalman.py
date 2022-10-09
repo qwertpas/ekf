@@ -107,10 +107,10 @@ while len(log['timestamp']) < 100:
     action = K @ state
 
     log['timestamp'].append(datetime.now().timestamp())
-    log['x'].append(x)
-    log['xdot'].append(xdot)
-    log['theta'].append(theta)
-    log['thetadot'].append(thetadot)
+    log['x'].append(x_obs)
+    log['xdot'].append(xdot_obs)
+    log['theta'].append(theta_obs)
+    log['thetadot'].append(thetadot_obs)
     log['action'].append(action)
 
 
@@ -129,4 +129,4 @@ while len(log['timestamp']) < 100:
         action=0
 
 import pandas as pd
-pd.DataFrame.from_dict(log).to_csv("cartpole_log.csv", index=False)
+pd.DataFrame.from_dict(log).to_csv("cartpole_log_n0.1.csv", index=False)
