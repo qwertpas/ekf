@@ -80,6 +80,7 @@ void step(Vector4f obs, float force, float dt){
     predict(force, dt); 
     Matrix4f F = statedot.asDiagonal();
     P_pre = F*P_post*F.transpose() + Q;
+    P_pre = P_post + Q;
 
     //form observation
     H = I_4;
@@ -102,16 +103,14 @@ void step(Vector4f obs, float force, float dt){
 void readCSV(vector<vector<string> > *content, string fname){
     vector<string> row;
     string line, word;
-    
     fstream file (fname, ios::in);
     if(file.is_open()){
         while(getline(file, line)){
             row.clear();
-    
             stringstream str(line);
-    
-            while(getline(str, word, ','))
+            while(getline(str, word, ',')){
                 row.push_back(word);
+            }
             (*content).push_back(row);
         }
     }else{
@@ -125,24 +124,26 @@ int main(){
     vector<vector<string> > content;
     readCSV(&content, "cartpole_log.csv");
 
-    cout << content[0][0] << endl;
     
-
     const float dt = 1/30.0f;
     ekf_init(0.1, 0.5, 0.25);
-    // ekf_init(0, 1, 0);
 
 
-    while(1){
+    for(int i=1; i < content.size(); i++){
 
-    
-        float force = 0.0f;
+        float timestamp = stof(content[i][0]);
+        float x = stof(content[i][1]);
+        float xdot = stof(content[i][2]);
+        float theta = stof(content[i][3]);
+        float thetadot = stof(content[i][4]);
+        float force = stof(content[i][5]);
+
         Vector4f obs;
-        obs << 0.1, 0, 0, 0;
+        obs << x, xdot, theta, thetadot;
 
         step(obs, force, dt);
 
-        usleep(1e5);
+        usleep(1e4);
 
         cout << state << '\n' << endl;
     }
