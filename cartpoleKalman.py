@@ -23,7 +23,7 @@ lp = LivePlot(
 class PitchEKF(EKF):
     def __init__(self):
         # 4 states, 1 observable
-        EKF.__init__(self, n=4, m=4, pval=0.1, qval=0.5, rval=0.25)
+        EKF.__init__(self, n=4, m=4, pval=0.1, qval=0.25, rval=2)
 
     def f(self, state, action):
         x, x_dot, theta, theta_dot = state
@@ -76,10 +76,18 @@ errors = np.zeros(10)
 
 log = {
     'timestamp': [],
+    'x_obs': [],
+    'xdot_obs': [],
+    'theta_obs': [],
+    'thetadot_obs': [],
     'x': [],
     'xdot': [],
     'theta': [],
     'thetadot': [],
+    'x_est': [],
+    'xdot_est': [],
+    'theta_est': [],
+    'thetadot_est': [],
     'action': [],
 }
 
@@ -107,10 +115,22 @@ while len(log['timestamp']) < 100:
     action = K @ state
 
     log['timestamp'].append(datetime.now().timestamp())
-    log['x'].append(x_obs)
-    log['xdot'].append(xdot_obs)
-    log['theta'].append(theta_obs)
-    log['thetadot'].append(thetadot_obs)
+
+    log['x_obs'].append(x_obs)
+    log['xdot_obs'].append(xdot_obs)
+    log['theta_obs'].append(theta_obs)
+    log['thetadot_obs'].append(thetadot_obs)
+
+    log['x'].append(x)
+    log['xdot'].append(xdot)
+    log['theta'].append(theta)
+    log['thetadot'].append(thetadot)
+
+    log['x_est'].append(x_est)
+    log['xdot_est'].append(xdot_est)
+    log['theta_est'].append(theta_est)
+    log['thetadot_est'].append(thetadot_est)
+
     log['action'].append(action)
 
 
