@@ -2,17 +2,20 @@
 // #include <Eigen/Dense>
 #include "Eigen/Dense"
 #include <math.h>
+#include <unistd.h>
+
+
 
 using Eigen::Vector4f;
 using Eigen::Matrix4f;
 using Eigen::MatrixXd;
+using namespace std;
 
 //4 states: [x, xdot, theta, thetadot]
 Vector4f state, statedot;   //prediction of state
 Matrix4f P_pre, P_post;     //prediction covariance
 Matrix4f Q;                 //process covariance
 Matrix4f R;                 //measurement noise covariance
-Vector4f obs;               //observations
 Matrix4f H;                 //selects which states are observed
 Vector4f h;                 //observed states
 
@@ -25,11 +28,8 @@ const float polemass_length = masspole * length;
 
 Matrix4f I_4;
 
-float dt = 1/30.0f;
-float force = 0.0f;
-
 //model prediction (f)
-void predict(){
+void predict(float force, float dt){
     float x = state(0);
     float xdot = state(1);
     float theta = state(2);
@@ -73,18 +73,21 @@ void ekf_init(float pval, float qval, float rval){
 }
 
 //one step of the EKF using obs
-void step(){
+void step(Vector4f obs, float force, float dt){
     //predict state and statedot using force and dt
-    predict(); 
-    P_pre = statedot * P_post * statedot + Q;
+    predict(force, dt); 
+    Matrix4f F = statedot.asDiagonal();
+    P_pre = F*P_post*F.transpose() + Q;
 
     //form observation
     H = I_4;
     h = H * obs;
     Matrix4f H_t = H.transpose();
 
-    //calc kalman filter
+    //calc kalman gain
     Matrix4f G = (P_pre*H_t) * ((H*P_pre*H_t).inverse() + R);
+
+    cout << F << "\n" << endl;
 
     //update state
     state = state + G*(obs - h);
@@ -96,11 +99,22 @@ void step(){
 
 int main(){
 
+    float dt = 1/30.0f;
+    ekf_init(0.1, 0.5, 0.25);
 
-    MatrixXd m(2, 2);
-    m(0, 0) = 3;
-    m(1, 0) = 3.42;
-    m(0, 1) = -1;
-    m(1, 1) = m(1, 0) + m(0, 1);
-    std::cout << m << std::endl;
+
+    while(1){
+
+    
+        float force = 0.1f;
+        Vector4f obs;
+        obs << 0, 0, 0.1, 0;
+
+        step(obs, force, dt);
+
+        sleep(1);
+
+
+        cout << state << '\n' << endl;
+    }
 }

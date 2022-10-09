@@ -4,7 +4,7 @@ from cartpoleEnv import CartPoleEnv
 from tinyekf import EKF
 import numpy as np
 
-env = CartPoleEnv(render_mode='human', noise_lvl=0.05)
+env = CartPoleEnv(render_mode='human', noise_lvl=0.1)
 state = env.reset()
 action = 0
 
@@ -14,9 +14,10 @@ lp = LivePlot(
         ('theta_obs', 'theta_est'),
         ('xdot_obs', 'xdot_est'), 
         ('thetadot_obs', 'thetadot_est'),
+        ('error', '0')
     ),
-    ymins=[-2.4, -np.pi/4, -1, -1],
-    ymaxes=[2.4, np.pi/4, 1, 1],
+    ymins=[-2.4, -np.pi/4, -1, -1, 0],
+    ymaxes=[2.4, np.pi/4, 1, 1, 0.5],
 )
 
 class PitchEKF(EKF):
@@ -55,7 +56,7 @@ class PitchEKF(EKF):
         new_state = np.array([x, x_dot, theta, theta_dot])
         state_dot = np.array([x_dot, xacc, theta_dot, thetaacc])
 
-        return new_state, state_dot
+        return new_state, np.diag(state_dot)
 
     def h(self, obs):
         #imu will measure pitch (theta), at the 2nd index
@@ -70,6 +71,8 @@ pitchEKF = PitchEKF()
 
 pitchEKF.x = state
 
+errors = np.zeros(10)
+
 
 while True:
 
@@ -83,15 +86,22 @@ while True:
 
     state_est = pitchEKF.step(obs, action)
 
+    errors = np.roll(errors, -1)
+    errors[-1] = np.linalg.norm(state_est - state)
+    # print(errors)
+    # print(np.mean(errors))
+
     x_est, xdot_est, theta_est, thetadot_est = state_est
 
-    action = K @ np.array([x_est, xdot_est, theta_est, thetadot_est])
+    # action = K @ np.array([x_est, xdot_est, theta_est, thetadot_est])
+    action = K @ state
 
     lp.plot(
         x_obs, x_est, 
         theta_obs, theta_est,
         xdot_obs, xdot_est,
         thetadot_obs, thetadot_est,
+        np.mean(errors), 0
     )
 
     env.render()

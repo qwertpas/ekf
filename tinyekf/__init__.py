@@ -59,11 +59,14 @@ class EKF(object):
         # $\hat{x}_k = f(\hat{x}_{k-1})$
         self.x, F = self.f(self.x, u)
 
+        # F = np.diag(F)
+
         # $P_k = F_{k-1} P_{k-1} F^T_{k-1} + Q_{k-1}$
         # print(self.P_post.trace())
-        self.P_pre = self.P_post @ (F*F) + self.Q
+        # self.P_pre = self.P_post + self.Q
+        self.P_pre = F@self.P_post@F.T + self.Q
 
-        print(F, self.P_post @ F.T)
+        # print(F, self.P_post @ F.T)
 
         # Update -----------------------------------------------------
 
