@@ -8,7 +8,7 @@ using Eigen::Matrix4f;
 using Eigen::MatrixXd;
 
 //4 states: [x, xdot, theta, thetadot]
-Vector4f state, statedot;
+Vector4f state, statedot;   //prediction of state
 Matrix4f P_pre, P_post;     //prediction covariance
 Matrix4f Q;                 //process covariance
 Matrix4f R;                 //measurement noise covariance
@@ -59,11 +59,6 @@ void predict(){
     statedot(3) = thetaacc;
 }
 
-//select which states are being observed
-void form_obs(){
-    H = I_4; //observe all 4 states
-    h = H * obs;
-}
 
 void ekf_init(float pval, float qval, float rval){
     I_4 <<  1, 0, 0, 0,
@@ -77,20 +72,25 @@ void ekf_init(float pval, float qval, float rval){
     R = I_4 * rval;
 }
 
-//one step of the EKF using the observation obs
+//one step of the EKF using obs
 void step(){
-    predict(); //updates state and statedot using force and dt
+    //predict state and statedot using force and dt
+    predict(); 
     P_pre = statedot * P_post * statedot + Q;
 
-    form_obs(); //updates h and H, the formatted observations
+    //form observation
+    H = I_4;
+    h = H * obs;
     Matrix4f H_t = H.transpose();
 
+    //calc kalman filter
     Matrix4f G = (P_pre*H_t) * ((H*P_pre*H_t).inverse() + R);
 
+    //update state
     state = state + G*(obs - h);
 
-
-
+    //update process covariance
+    P_post = (I_4 - G*H) * P_pre * (I_4 - G*H).transpose() + G*R*G.transpose(); 
 }
 
 
