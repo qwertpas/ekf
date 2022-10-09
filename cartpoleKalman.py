@@ -4,7 +4,7 @@ from cartpoleEnv import CartPoleEnv
 from tinyekf import EKF
 import numpy as np
 
-env = CartPoleEnv(render_mode='human', noise_lvl=0.1)
+env = CartPoleEnv(render_mode='human', noise_lvl=0.05)
 state = env.reset()
 action = 0
 
@@ -30,7 +30,7 @@ class PitchEKF(EKF):
 
         gravity = 9.8
         masscart = 1.0
-        masspole = 0.1
+        masspole = 0.15
         total_mass = masspole + masscart
         length = 0.5  # actually half the pole's length
         polemass_length = masspole * length

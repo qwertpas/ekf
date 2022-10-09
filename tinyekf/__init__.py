@@ -61,7 +61,9 @@ class EKF(object):
 
         # $P_k = F_{k-1} P_{k-1} F^T_{k-1} + Q_{k-1}$
         # print(self.P_post.trace())
-        self.P_pre = F @ self.P_post @ F.T + self.Q
+        self.P_pre = self.P_post @ (F*F) + self.Q
+
+        print(F, self.P_post @ F.T)
 
         # Update -----------------------------------------------------
 
@@ -69,7 +71,7 @@ class EKF(object):
         n = self.n
         m = self.m
 
-        h, H = self.h(z)
+        h, H = self.h(self.x)
         h = np.reshape(h, (m,1))
         H = np.reshape(H, (m,n))
 
