@@ -69,7 +69,7 @@ class EKF(object):
         n = self.n
         m = self.m
 
-        h, H = self.h(self.x)
+        h, H = self.h(z)
         h = np.reshape(h, (m,1))
         H = np.reshape(H, (m,n))
 

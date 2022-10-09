@@ -4,7 +4,7 @@ from cartpoleEnv import CartPoleEnv
 from tinyekf import EKF
 import numpy as np
 
-env = CartPoleEnv(render_mode='human', noise_lvl=0.05)
+env = CartPoleEnv(render_mode='human', noise_lvl=0.1)
 state = env.reset()
 action = 0
 
